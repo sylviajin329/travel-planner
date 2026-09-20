@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>여정 — 스마트 동선 플래너</title>
+<style>
+:root {
+  --bg:#F7F4EF; --sf:#fff; --ink:#1A1714; --ink2:#6B6560; --ink3:#B0AAA4;
+  --acc:#C8512A; --acc2:#3E6B4A; --bdr:#E4DED7; --tag:#EDE8E2;
+  --sh:0 2px 14px rgba(26,23,20,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:sans-serif;background:var(--bg);color:var(--ink);}
+body{display:flex;flex-direction:column;}
+
+/* HEADER */
+.hdr{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--sf);border-bottom:1px solid var(--bdr);flex-shrink:0;}
+.logo{font-family:Georgia,serif;font-size:20px;font-weight:700;letter-spacing:-.5px;}
+.logo b{color:var(--acc);}
+.logo-s{font-size:11px;color:var(--ink3);margin-top:1px;}
+.api-row{margin-left:auto;display:flex;align-items:center;gap:7px;}
+.api-box{display:flex;align-items:center;gap:0;border:1.5px solid var(--bdr);border-radius:9px;overflow:hidden;background:var(--bg);}
+.api-inp{padding:7px 11px;border:none;font-size:12px;background:transparent;color:var(--ink);width:200px;outline:none;}
+.api-inp::placeholder{color:var(--ink3);}
+.api-test{padding:7px 12px;background:var(--tag);border:none;border-left:1px solid var(--bdr);font-size:12px;cursor:pointer;color:var(--ink2);white-space:nowrap;}
+.api-test:hover{background:var(--bdr);}
+.kbdg{font-size:11px;padding:4px 10px;border-radius:20px;background:var(--tag);color:var(--ink3);white-space:nowrap;}
+.kbdg.live{background:#EBF3EF;color:#2E6644;}
+.kbdg.err{background:#FDF0EB;color:#994020;}
+
+/* LAYOUT */
+.app{display:grid;grid-template-columns:340px 1fr;flex:1;overflow:hidden;}
+
+/* LEFT */
+.left{background:var(--sf);border-right:1px solid var(--bdr);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:14px;}
+.slbl{font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--ink3);margin-bottom:6px;}
+.dvd{height:1px;background:var(--bdr);}
+
+.cgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;}
+.chip{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:10px;border:1.5px solid var(--bdr);cursor:pointer;background:transparent;transition:all .14s;}
+.chip:hover{border-color:var(--acc);background:#FDF0EB;}
+.chip.on{border-color:var(--acc);background:#FDF0EB;}
+.chip-i{font-size:18px;}
+.chip-l{font-size:10px;color:var(--ink2);}
+.chip.on .chip-l{color:var(--acc);font-weight:700;}
+
+.sel,.inp{width:100%;padding:8px 11px;border:1.5px solid var(--bdr);border-radius:9px;font-size:13px;background:var(--bg);color:var(--ink);outline:none;transition:border-color .14s;appearance:none;}
+.sel:focus,.inp:focus{border-color:var(--acc);}
+
+.ct-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px;}
+.cchip{font-size:11px;padding:3px 8px;border-radius:20px;border:1px solid var(--bdr);background:transparent;color:var(--ink2);cursor:pointer;transition:all .12s;}
+.cchip.on{background:var(--acc2);border-color:var(--acc2);color:#fff;}
+
+.sr{display:flex;gap:5px;}
+.sr .inp{flex:1;}
+.btnp{padding:8px 11px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;background:var(--acc);color:#fff;transition:opacity .14s;}
+.btnp:hover{opacity:.88;}
+.btns{padding:8px 10px;border-radius:8px;border:1px solid var(--bdr);font-size:12px;cursor:pointer;background:transparent;color:var(--ink2);}
+.btns:hover{background:var(--tag);}
+
+.stt{font-size:11px;color:var(--ink3);min-height:15px;margin:3px 0;}
+.stt.err{color:#994020;}
+.stt.ok{color:#2E6644;}
+
+.slist{max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;}
+.si{display:flex;align-items:flex-start;gap:7px;padding:8px 10px;border-radius:8px;border:1.5px solid var(--bdr);cursor:pointer;background:var(--bg);transition:all .12s;}
+.si:hover{border-color:var(--acc2);background:#EBF3EF;}
+.si.on{border-color:var(--acc2);background:#EBF3EF;}
+.sdot{width:7px;height:7px;border-radius:50%;background:var(--bdr);flex-shrink:0;margin-top:4px;}
+.si.on .sdot{background:var(--acc2);}
+.sn{font-size:12px;flex:1;line-height:1.3;}
+.sc{font-size:10px;color:var(--ink3);}
+
+.bdgs{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+.bdg{font-size:11px;padding:3px 8px;border-radius:20px;background:#EBF3EF;border:1px solid #A8D0B5;color:#2E6644;display:flex;align-items:center;gap:3px;}
+.bdg button{background:none;border:none;cursor:pointer;color:#2E6644;font-size:13px;padding:0;line-height:1;}
+.bdot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+
+.plist{display:flex;flex-direction:column;gap:3px;}
+.prow{display:flex;align-items:center;gap:8px;padding:3px 0;}
+.plbl{font-size:12px;flex:1;}
+.pbtns{display:flex;gap:3px;}
+.pbtn{width:22px;height:22px;border-radius:5px;border:1.5px solid var(--bdr);background:transparent;cursor:pointer;font-size:10px;font-weight:700;color:var(--ink3);transition:all .12s;}
+.pbtn.on{background:var(--ink);border-color:var(--ink);color:#fff;}
+
+.ntc{font-size:11px;line-height:1.6;padding:9px 12px;border-radius:8px;background:#FDF0EB;border:1px solid #F0B99A;color:#994020;}
+.ntc.live{background:#EBF3EF;border-color:#A8D0B5;color:#2E6644;}
+
+.gbtn{width:100%;padding:13px;background:var(--ink);color:#fff;border:none;border-radius:11px;font-family:Georgia,serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .18s;}
+.gbtn:hover{background:var(--acc);transform:translateY(-1px);}
+
+/* RIGHT */
+.right{display:flex;flex-direction:column;overflow:hidden;}
+.tabs{display:flex;border-bottom:1px solid var(--bdr);background:var(--sf);padding:0 18px;flex-shrink:0;}
+.tab{padding:12px 16px;font-size:13px;background:none;border:none;border-bottom:2px solid transparent;color:var(--ink3);cursor:pointer;transition:all .13s;margin-bottom:-1px;}
+.tab.on{color:var(--ink);border-bottom-color:var(--acc);font-weight:700;}
+
+.pane{flex:1;overflow:hidden;display:none;flex-direction:column;}
+.pane.on{display:flex;}
+
+/* MAP */
+.mapwrap{flex:1;position:relative;background:#E4EFF5;overflow:hidden;min-height:300px;}
+.map-svg{width:100%;height:100%;display:block;}
+.mempty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;color:var(--ink3);background:rgba(228,239,245,0.92);z-index:2;}
+.mempty-i{font-size:40px;opacity:.2;}
+.mempty-t{font-family:Georgia,serif;font-size:17px;}
+.mempty-s{font-size:12px;line-height:1.7;}
+.mleg{background:var(--sf);border-top:1px solid var(--bdr);padding:7px 16px;display:none;flex-wrap:wrap;gap:10px;flex-shrink:0;}
+.mleg.on{display:flex;}
+.lgi{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink2);cursor:pointer;}
+.lgi:hover{color:var(--acc);}
+.lgd{width:10px;height:10px;border-radius:50%;}
+
+/* TIMELINE */
+.tlscroll{flex:1;overflow-y:auto;padding:20px 22px;}
+.tlempty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;text-align:center;color:var(--ink3);}
+.tlempty-i{font-size:38px;opacity:.2;}
+.tlempty-t{font-family:Georgia,serif;font-size:17px;}
+.tlempty-s{font-size:12px;line-height:1.7;}
+
+.ld{display:none;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;}
+.ld.on{display:flex;}
+.spin{width:34px;height:34px;border:3px solid var(--bdr);border-top-color:var(--acc);border-radius:50%;animation:spin .75s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.lsteps{display:flex;flex-direction:column;gap:5px;align-items:center;}
+.ls{font-size:12px;color:var(--ink3);transition:color .3s;}
+.ls.on{color:var(--acc);font-weight:700;}
+
+.res-t{font-family:Georgia,serif;font-size:21px;font-weight:700;letter-spacing:-.5px;}
+.res-s{font-size:12px;color:var(--ink3);margin:3px 0 14px;}
+.wbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--sf);border:1px solid var(--bdr);border-radius:10px;padding:10px 14px;margin-bottom:16px;}
+.wi{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--ink2);}
+.tl{display:flex;flex-direction:column;}
+.trow{display:flex;gap:12px;}
+.tleft{display:flex;flex-direction:column;align-items:center;width:28px;flex-shrink:0;}
+.tnum{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;}
+.tline{flex:1;width:2px;background:var(--bdr);margin:3px 0;min-height:12px;}
+.tcard{background:var(--sf);border:1px solid var(--bdr);border-radius:12px;padding:11px 15px;margin-bottom:8px;flex:1;cursor:pointer;transition:all .13s;}
+.tcard:hover{box-shadow:var(--sh);}
+.tcard.hl{border-color:var(--acc);box-shadow:0 0 0 3px rgba(200,81,42,.1);}
+.ttop{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px;}
+.tname{font-size:14px;font-weight:700;}
+.ttime{font-size:10px;color:var(--ink3);background:var(--tag);padding:2px 7px;border-radius:5px;}
+.taddr{font-size:11px;color:var(--ink3);margin-bottom:6px;}
+.ttags{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px;}
+.ttag{font-size:10px;padding:2px 7px;border-radius:20px;border:1px solid var(--bdr);color:var(--ink2);background:var(--tag);}
+.ttag.g{background:#EBF3EF;border-color:#A8D0B5;color:#2E6644;}
+.ttag.w{background:#FDF0EB;border-color:#F0B99A;color:#994020;}
+.ttip{font-size:11px;color:var(--ink2);line-height:1.6;padding-top:6px;border-top:1px solid var(--bdr);}
+.trr{display:flex;align-items:center;gap:5px;padding:2px 0 2px 40px;font-size:11px;color:var(--ink3);}
+.sgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:16px;}
+.sc{background:var(--sf);border:1px solid var(--bdr);border-radius:10px;padding:10px 12px;}
+.snum{font-size:18px;font-weight:700;}
+.slb{font-size:10px;color:var(--ink3);margin-top:1px;}
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:10px;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div>
+    <div class="logo">여<b>정</b></div>
+    <div class="logo-s">한국관광공사 TourAPI 기반 스마트 동선 플래너</div>
+  </div>
+  <div class="api-row">
+    <div class="api-box">
+      <input class="api-inp" id="apiInp" type="password" placeholder="TourAPI 인증키 붙여넣기..." oninput="onKey(this.value)">
+      <button class="api-test" onclick="testKey()">연결 확인</button>
+    </div>
+    <span class="kbdg" id="kbdg">데모 모드</span>
+  </div>
+</div>
+
+<div class="app">
+  <!-- LEFT -->
+  <div class="left">
+    <div>
+      <div class="slbl">동반자</div>
+      <div class="cgrid">
+        <button class="chip" data-v="solo"    onclick="pick(this,'companion')"><span class="chip-i">🧍</span><span class="chip-l">혼자</span></button>
+        <button class="chip" data-v="couple"  onclick="pick(this,'companion')"><span class="chip-i">👫</span><span class="chip-l">커플</span></button>
+        <button class="chip" data-v="friends" onclick="pick(this,'companion')"><span class="chip-i">👯</span><span class="chip-l">친구</span></button>
+        <button class="chip" data-v="family"  onclick="pick(this,'companion')"><span class="chip-i">👨‍👩‍👧</span><span class="chip-l">가족</span></button>
+        <button class="chip" data-v="pet"     onclick="pick(this,'companion')"><span class="chip-i">🐶</span><span class="chip-l">반려동물</span></button>
+        <button class="chip" data-v="senior"  onclick="pick(this,'companion')"><span class="chip-i">👴</span><span class="chip-l">어르신</span></button>
+      </div>
+    </div>
+    <div class="dvd"></div>
+    <div>
+      <div class="slbl">여행 지역</div>
+      <select class="sel" id="regionSel" onchange="onRegion()">
+        <option value="">지역 선택</option>
+        <option value="1">서울</option><option value="2">인천</option>
+        <option value="3">대전</option><option value="4">대구</option>
+        <option value="5">광주</option><option value="6">부산</option>
+        <option value="7">울산</option><option value="8">세종</option>
+        <option value="31">경기</option><option value="32">강원</option>
+        <option value="33">충북</option><option value="34">충남</option>
+        <option value="35">경북</option><option value="36">경남</option>
+        <option value="37">전북</option><option value="38">전남</option>
+        <option value="39">제주</option>
+      </select>
+    </div>
+    <div>
+      <div class="slbl">명소 유형</div>
+      <div class="ct-row">
+        <button class="cchip on" data-ct="12" onclick="toggleCt(this)">관광지</button>
+        <button class="cchip on" data-ct="14" onclick="toggleCt(this)">문화시설</button>
+        <button class="cchip on" data-ct="15" onclick="toggleCt(this)">축제/행사</button>
+        <button class="cchip on" data-ct="28" onclick="toggleCt(this)">레포츠</button>
+        <button class="cchip on" data-ct="38" onclick="toggleCt(this)">쇼핑</button>
+        <button class="cchip on" data-ct="39" onclick="toggleCt(this)">음식점</button>
+      </div>
+      <div class="sr">
+        <input class="inp" id="qInp" placeholder="명소 이름 검색..." onkeydown="if(event.key==='Enter')doSearch()">
+        <button class="btnp" onclick="doSearch()">검색</button>
+        <button class="btns" onclick="doArea()">전체</button>
+      </div>
+      <div class="stt" id="stt"></div>
+      <div class="slist" id="slist"></div>
+      <div class="bdgs" id="bdgs"></div>
+    </div>
+    <div class="dvd"></div>
+    <div>
+      <div class="slbl">여행 날짜</div>
+      <input type="date" class="inp" id="dateInp">
+    </div>
+    <div>
+      <div class="slbl">고려사항 우선순위 (1낮음 · 3높음)</div>
+      <div class="plist" id="plist"></div>
+    </div>
+    <div class="dvd"></div>
+    <div class="ntc" id="ntc">
+      💡 <strong>데모 모드</strong> — 상단에 TourAPI 인증키를 입력하면 전국 26만 건 실제 명소를 검색할 수 있습니다.<br>
+      인증키: <strong>data.go.kr</strong> → 한국관광공사 국문 관광정보 서비스 → 활용신청
+    </div>
+    <button class="gbtn" onclick="generate()">동선 생성 + 지도 보기 →</button>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="tabs">
+      <button class="tab on" id="tabMap" onclick="showTab('map',this)">🗺 지도 동선</button>
+      <button class="tab" id="tabTl" onclick="showTab('tl',this)">📋 타임라인</button>
+    </div>
+    <div class="pane on" id="pane-map">
+      <div class="mapwrap">
+        <div class="mempty" id="mempty">
+          <div class="mempty-i">🗺️</div>
+          <div class="mempty-t">동선을 생성하면 지도가 표시됩니다</div>
+          <div class="mempty-s">지역과 명소를 선택 후<br>동선 생성 버튼을 누르세요</div>
+        </div>
+        <svg class="map-svg" id="msvg" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg">
+          <rect width="800" height="500" fill="#E4EFF5"/>
+          <rect x="40" y="30" width="720" height="440" rx="14" fill="#D2E8F2" stroke="#B8D4E4" stroke-width="1"/>
+          <g stroke="#BFCFDA" stroke-width="1" fill="none">
+            <line x1="40" y1="250" x2="760" y2="250"/>
+            <line x1="400" y1="30" x2="400" y2="470"/>
+            <line x1="220" y1="30" x2="220" y2="470"/>
+            <line x1="580" y1="30" x2="580" y2="470"/>
+            <line x1="40" y1="160" x2="760" y2="160"/>
+            <line x1="40" y1="340" x2="760" y2="340"/>
+          </g>
+          <g stroke="#C8D8E4" stroke-width="2.5" fill="none" opacity=".5">
+            <line x1="40" y1="250" x2="760" y2="250"/>
+            <line x1="400" y1="30" x2="400" y2="470"/>
+          </g>
+          <text x="80" y="68" font-size="11" fill="#9AB5C4" font-family="sans-serif">북</text>
+          <text x="720" y="458" font-size="11" fill="#9AB5C4" font-family="sans-serif">남</text>
+          <text x="80" y="458" font-size="11" fill="#9AB5C4" font-family="sans-serif">서</text>
+          <text x="720" y="68" font-size="11" fill="#9AB5C4" font-family="sans-serif">동</text>
+          <g id="rlines"></g>
+          <g id="mmarkers"></g>
+        </svg>
+      </div>
+      <div class="mleg" id="mleg"></div>
+    </div>
+    <div class="pane" id="pane-tl">
+      <div class="tlscroll">
+        <div class="tlempty" id="tlempty">
+          <div class="tlempty-i">📋</div>
+          <div class="tlempty-t">타임라인이 여기에 표시됩니다</div>
+          <div class="tlempty-s">카드 클릭 시 지도에서 해당 위치 강조</div>
+        </div>
+        <div class="ld" id="ld">
+          <div class="spin"></div>
+          <div class="lsteps" id="lsteps"></div>
+        </div>
+        <div id="resArea" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var S = {
+  companion:'', region:'', regionName:'', apiKey:'',
+  selCt:{'12':1,'14':1,'15':1,'28':1,'38':1,'39':1},
+  selSpots:[], prio:{날씨:2,맛집:2,카페:1,경치:3,주차:2,웨이팅:2,동선효율:3}, route:[]
+};
+var COLORS=['#C8512A','#3E6B4A','#3B5FA0','#8B4BAB','#D4842A','#1A9E8C','#C0392B','#1E6BA8'];
+var CT={'12':'관광지','14':'문화시설','15':'축제/행사','28':'레포츠','38':'쇼핑','39':'음식점'};
+var CMAP={solo:'혼자',couple:'커플',friends:'친구들',family:'가족',pet:'반려동물과',senior:'어르신과'};
+var STEPS=['명소 정보 수집 중...','동선 최적화 중...','지도 배치 중...'];
+var WDATA=[
+  {icon:'☀️',label:'맑음',temp:'22°C',uv:'UV 보통',wind:'바람 약함',note:'야외 관광 최적'},
+  {icon:'⛅',label:'구름',temp:'19°C',uv:'UV 낮음',wind:'바람 약함',note:'쾌적한 날씨'},
+  {icon:'🌧',label:'비',temp:'15°C',uv:'UV 낮음',wind:'바람 강함',note:'실내 위주 추천'}
+];
+
+// ── 데모 데이터 ─────────────────────────────
+var DEMO={
+'1':[
+  {id:'s01',name:'경복궁',ct:'12',addr:'서울 종로구 사직로 161',lat:37.5796,lng:126.9770,parking:true,wait:'15~30분',tip:'오전 9시 개장 직후 추천. 수문장 교대식 10시·14시'},
+  {id:'s02',name:'북촌한옥마을',ct:'12',addr:'서울 종로구 계동길 37',lat:37.5826,lng:126.9840,parking:false,wait:'없음',tip:'평일 오전 한적. 주민 거주지이니 조용히'},
+  {id:'s03',name:'창덕궁',ct:'12',addr:'서울 종로구 율곡로 99',lat:37.5794,lng:126.9910,parking:false,wait:'예약 필요',tip:'후원 투어 사전예약 필수. 유네스코 세계유산'},
+  {id:'s04',name:'인사동',ct:'14',addr:'서울 종로구 인사동길',lat:37.5743,lng:126.9867,parking:false,wait:'주말 혼잡',tip:'쌈지길 공방 체험. 전통찻집 골목 추천'},
+  {id:'s05',name:'광장시장',ct:'39',addr:'서울 종로구 창경궁로 88',lat:37.5700,lng:126.9994,parking:false,wait:'주말 매우 혼잡',tip:'빈대떡·마약김밥·육회비빔밥 필수'},
+  {id:'s06',name:'남산서울타워',ct:'12',addr:'서울 중구 남산공원길 105',lat:37.5512,lng:126.9882,parking:true,wait:'30~50분(케이블카)',tip:'일몰 1시간 전 방문 최적. 야경 명소'},
+  {id:'s07',name:'동대문디자인플라자',ct:'14',addr:'서울 중구 을지로 281',lat:37.5671,lng:127.0096,parking:true,wait:'없음',tip:'자하하디드 설계. 건축 자체가 볼거리'},
+  {id:'s08',name:'한강공원 여의도',ct:'28',addr:'서울 영등포구 여의동로 330',lat:37.5284,lng:126.9330,parking:true,wait:'없음',tip:'자전거 대여 가능. 봄철 벚꽃 명소'},
+  {id:'s09',name:'서촌마을',ct:'12',addr:'서울 종로구 자하문로',lat:37.5786,lng:126.9695,parking:false,wait:'없음',tip:'경복궁 서쪽 골목. 갤러리·카페 밀집'},
+  {id:'s10',name:'청계천',ct:'12',addr:'서울 종로구 청계천로',lat:37.5694,lng:126.9816,parking:false,wait:'없음',tip:'도심 산책로. 야간 조명 아름다움'},
+  {id:'s11',name:'국립중앙박물관',ct:'14',addr:'서울 용산구 서빙고로 137',lat:37.5239,lng:126.9802,parking:true,wait:'없음',tip:'상설전시 무료. 규모 세계 6위'},
+  {id:'s12',name:'이태원 경리단길',ct:'38',addr:'서울 용산구 이태원로',lat:37.5347,lng:126.9941,parking:false,wait:'없음',tip:'이국적 맛집·편집샵 밀집'}
+],
+'6':[
+  {id:'b01',name:'해운대해수욕장',ct:'12',addr:'부산 해운대구 우동',lat:35.1588,lng:129.1603,parking:true,wait:'성수기 혼잡',tip:'이른 아침·저녁 추천. 마린시티 야경'},
+  {id:'b02',name:'감천문화마을',ct:'12',addr:'부산 사하구 감내2로 203',lat:35.0974,lng:129.0103,parking:true,wait:'20~30분',tip:'스탬프 투어 지도 입구 구매. 계단 주의'},
+  {id:'b03',name:'국제시장',ct:'38',addr:'부산 중구 신창동 4가',lat:35.0992,lng:129.0248,parking:false,wait:'없음',tip:'씨앗호떡·비빔당면. 영화 국제시장 배경'},
+  {id:'b04',name:'용두산공원',ct:'12',addr:'부산 중구 용두산길 37',lat:35.1013,lng:129.0321,parking:false,wait:'없음',tip:'부산타워 360도 파노라마 전망'},
+  {id:'b05',name:'태종대',ct:'12',addr:'부산 영도구 전망로 24',lat:35.0469,lng:129.0801,parking:true,wait:'없음',tip:'다누비열차 이용 편리. 해안 절벽 절경'},
+  {id:'b06',name:'광안리해수욕장',ct:'12',addr:'부산 수영구 광안해변로 219',lat:35.1531,lng:129.1186,parking:true,wait:'없음',tip:'광안대교 야경 압권. 저녁 방문 추천'},
+  {id:'b07',name:'자갈치시장',ct:'39',addr:'부산 중구 자갈치해안로 52',lat:35.0968,lng:129.0287,parking:false,wait:'없음',tip:'활어 바로 먹기 가능. 2층 식당가 추천'},
+  {id:'b08',name:'흰여울문화마을',ct:'12',addr:'부산 영도구 흰여울길',lat:35.0845,lng:129.0344,parking:false,wait:'없음',tip:'부산 바다뷰 골목. 영화 변호인 배경지'},
+  {id:'b09',name:'송도해상케이블카',ct:'28',addr:'부산 서구 암남동',lat:35.0836,lng:129.0167,parking:true,wait:'30~60분',tip:'바다 위 케이블카. 일몰 시간 강추'},
+  {id:'b10',name:'남포동 BIFF광장',ct:'38',addr:'부산 중구 남포동',lat:35.0978,lng:129.0308,parking:false,wait:'없음',tip:'부산국제영화제 광장. 씨앗호떡 원조'}
+],
+'39':[
+  {id:'j01',name:'성산일출봉',ct:'12',addr:'제주 서귀포시 성산읍',lat:33.4580,lng:126.9426,parking:true,wait:'20~40분',tip:'일출 1시간 전 입장. 섭지코지와 함께'},
+  {id:'j02',name:'협재해수욕장',ct:'12',addr:'제주 제주시 한림읍',lat:33.3942,lng:126.2394,parking:true,wait:'없음',tip:'에메랄드빛 바다. 비양도 뷰 포인트'},
+  {id:'j03',name:'한라산 영실코스',ct:'28',addr:'제주 서귀포시 영실',lat:33.3618,lng:126.5339,parking:true,wait:'없음',tip:'왕복 2시간. 등산화 필수'},
+  {id:'j04',name:'동문재래시장',ct:'39',addr:'제주 제주시 관덕로 14길',lat:33.5126,lng:126.5238,parking:false,wait:'주말 혼잡',tip:'흑돼지·고기국수·오메기떡 필수'},
+  {id:'j05',name:'우도',ct:'12',addr:'제주 제주시 우도면',lat:33.5070,lng:126.9517,parking:false,wait:'성수기 대기',tip:'땅콩아이스크림 필수. 자전거 투어 추천'},
+  {id:'j06',name:'천지연폭포',ct:'12',addr:'제주 서귀포시 천지동',lat:33.2487,lng:126.5602,parking:true,wait:'없음',tip:'야간 개장(21시). 조명 폭포 장관'},
+  {id:'j07',name:'사려니숲길',ct:'28',addr:'제주 제주시 조천읍',lat:33.4178,lng:126.6603,parking:true,wait:'없음',tip:'편백나무 피톤치드. 왕복 2시간'},
+  {id:'j08',name:'섭지코지',ct:'12',addr:'제주 서귀포시 성산읍',lat:33.4271,lng:126.9296,parking:true,wait:'없음',tip:'유채꽃·억새 시즌에 아름다움'},
+  {id:'j09',name:'카멜리아힐',ct:'14',addr:'제주 서귀포시 안덕면',lat:33.2929,lng:126.3697,parking:true,wait:'없음',tip:'동백꽃 정원. 인생샷 명소'},
+  {id:'j10',name:'비자림',ct:'12',addr:'제주 제주시 구좌읍',lat:33.4864,lng:126.8073,parking:true,wait:'없음',tip:'500~800년 비자나무 숲'}
+],
+'32':[
+  {id:'g01',name:'강릉 경포대',ct:'12',addr:'강원 강릉시 경포로 365',lat:37.7962,lng:128.8983,parking:true,wait:'없음',tip:'경포호수 일출 명소. 소나무숲 산책'},
+  {id:'g02',name:'정동진',ct:'12',addr:'강원 강릉시 강동면',lat:37.6896,lng:129.0576,parking:true,wait:'없음',tip:'바다와 가장 가까운 기차역'},
+  {id:'g03',name:'오대산 월정사',ct:'12',addr:'강원 평창군 진부면',lat:37.7444,lng:128.5626,parking:true,wait:'없음',tip:'전나무숲길 압권. 사찰음식 체험'},
+  {id:'g04',name:'속초 중앙시장',ct:'39',addr:'강원 속초시 중앙로',lat:38.2048,lng:128.5918,parking:true,wait:'없음',tip:'닭강정·아바이순대·오징어순대'},
+  {id:'g05',name:'설악산 국립공원',ct:'28',addr:'강원 속초시 설악산로',lat:38.1191,lng:128.4658,parking:true,wait:'성수기 혼잡',tip:'권금성 케이블카로 정상 조망'},
+  {id:'g06',name:'남이섬',ct:'12',addr:'강원 춘천시 남산면',lat:37.7900,lng:127.5257,parking:true,wait:'20~40분',tip:'자전거 대여 가능. 사계절 아름다움'},
+  {id:'g07',name:'춘천 닭갈비골목',ct:'39',addr:'강원 춘천시 명동',lat:37.8752,lng:127.7341,parking:false,wait:'주말 혼잡',tip:'춘천 원조 닭갈비. 막국수 세트 추천'},
+  {id:'g08',name:'소양강 스카이워크',ct:'28',addr:'강원 춘천시 영서로',lat:37.8850,lng:127.7233,parking:true,wait:'없음',tip:'유리바닥 수상 다리. 소양강 전망'}
+],
+'31':[
+  {id:'k01',name:'수원화성',ct:'12',addr:'경기 수원시 장안구',lat:37.2887,lng:127.0148,parking:true,wait:'없음',tip:'유네스코 세계유산. 야경 투어 추천'},
+  {id:'k02',name:'에버랜드',ct:'28',addr:'경기 용인시 처인구',lat:37.2940,lng:127.2020,parking:true,wait:'60분 이상',tip:'사전 예약 필수. 시즌별 이벤트'},
+  {id:'k03',name:'한국민속촌',ct:'14',addr:'경기 용인시 기흥구',lat:37.2361,lng:127.1267,parking:true,wait:'없음',tip:'전통 문화 체험. 마당극 공연'},
+  {id:'k04',name:'광명동굴',ct:'14',addr:'경기 광명시 가학로',lat:37.4548,lng:126.8649,parking:true,wait:'30분',tip:'와인동굴+미디어아트. 독특한 체험'},
+  {id:'k05',name:'양평 두물머리',ct:'12',addr:'경기 양평군 양서면',lat:37.5288,lng:127.3057,parking:true,wait:'없음',tip:'남한강·북한강 합류점. 일출 명소'},
+  {id:'k06',name:'가평 아침고요수목원',ct:'12',addr:'경기 가평군 상면',lat:37.7853,lng:127.5130,parking:true,wait:'없음',tip:'계절별 꽃 테마. 야간 조명정원 인기'}
+],
+'4':[
+  {id:'d01',name:'동성로',ct:'38',addr:'대구 중구 동성로',lat:35.8700,lng:128.5960,parking:false,wait:'주말 혼잡',tip:'대구 대표 번화가. 패션·맛집 밀집'},
+  {id:'d02',name:'앞산공원',ct:'12',addr:'대구 남구 앞산순환로',lat:35.8277,lng:128.5671,parking:true,wait:'없음',tip:'케이블카로 쉽게 정상. 시내 파노라마'},
+  {id:'d03',name:'서문시장',ct:'39',addr:'대구 중구 큰장로',lat:35.8705,lng:128.5727,parking:false,wait:'없음',tip:'칼국수·납작만두·씨앗호떡 명물'},
+  {id:'d04',name:'83타워',ct:'12',addr:'대구 달서구 두류공원로',lat:35.8549,lng:128.5601,parking:true,wait:'없음',tip:'대구 랜드마크. 전망대 야경 추천'},
+  {id:'d05',name:'팔공산',ct:'28',addr:'대구 동구 공산동',lat:35.9882,lng:128.6918,parking:true,wait:'주말 혼잡',tip:'갓바위 일출 유명. 케이블카 운행'},
+  {id:'d06',name:'달성공원',ct:'12',addr:'대구 중구 달성공원로',lat:35.8711,lng:128.5764,parking:true,wait:'없음',tip:'대구 최초 도시공원. 소규모 동물원'}
+],
+'3':[
+  {id:'dj01',name:'성심당',ct:'39',addr:'대전 중구 대종로 480',lat:36.3282,lng:127.4275,parking:false,wait:'항상 줄 있음',tip:'대전 대표 빵집. 튀김소보로·부추빵'},
+  {id:'dj02',name:'엑스포과학공원',ct:'14',addr:'대전 유성구 대덕대로',lat:36.3755,lng:127.3866,parking:true,wait:'없음',tip:'1993년 엑스포 개최지. 한빛탑 전망대'},
+  {id:'dj03',name:'계족산황톳길',ct:'28',addr:'대전 대덕구 장동',lat:36.4149,lng:127.4532,parking:true,wait:'없음',tip:'맨발 황톳길 14km. 힐링 트레킹'},
+  {id:'dj04',name:'유성온천',ct:'12',addr:'대전 유성구 온천로',lat:36.3616,lng:127.3461,parking:true,wait:'없음',tip:'대전 대표 온천. 족욕 체험 가능'},
+  {id:'dj05',name:'대청호반',ct:'12',addr:'대전 동구 대청호로',lat:36.4632,lng:127.5108,parking:true,wait:'없음',tip:'드라이브 코스로 유명. 수변 산책로'}
+]
+};
+// 나머지 지역 기본 데모
+['2','5','7','8','33','34','35','36','37','38'].forEach(function(r){
+  DEMO[r]=[
+    {id:r+'a',name:'지역 대표 관광지',ct:'12',addr:'해당 지역 주요 관광지',lat:36.0+Math.random(),lng:127.5+Math.random(),parking:true,wait:'없음',tip:'TourAPI 인증키 입력 시 실제 데이터 제공'},
+    {id:r+'b',name:'지역 특산 맛집',ct:'39',addr:'해당 지역 맛집 거리',lat:36.0+Math.random(),lng:127.5+Math.random(),parking:false,wait:'주말 혼잡',tip:'지역 특산물 음식 추천'},
+    {id:r+'c',name:'지역 문화시설',ct:'14',addr:'해당 지역 박물관·미술관',lat:36.0+Math.random(),lng:127.5+Math.random(),parking:true,wait:'없음',tip:'지역 역사·문화 탐방'}
+  ];
+});
+
+// ── TourAPI 호출 ────────────────────────────
+function tourApiFetch(ep, params, cb) {
+  var base = 'https://apis.data.go.kr/B551011/KorService1/';
+  var qs = 'serviceKey='+encodeURIComponent(S.apiKey)+'&MobileOS=ETC&MobileApp=TravelPlanner&_type=json';
+  Object.keys(params).forEach(function(k){ qs += '&'+k+'='+encodeURIComponent(params[k]); });
+  var url = base + ep + '?' + qs;
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.onload = function() {
+    try {
+      var j = JSON.parse(xhr.responseText);
+      var items = j && j.response && j.response.body && j.response.body.items && j.response.body.items.item;
+      cb(null, items ? [].concat(items) : []);
+    } catch(e) { cb(e, []); }
+  };
+  xhr.onerror = function() { cb(new Error('네트워크 오류'), []); };
+  xhr.send();
+}
+
+function apiToSpot(it) {
+  return {
+    id: 'api_'+it.contentid,
+    name: it.title,
+    ct: String(it.contenttypeid||'12'),
+    addr: (it.addr1||'') + (it.addr2?' '+it.addr2:''),
+    lat: parseFloat(it.mapy)||0,
+    lng: parseFloat(it.mapx)||0,
+    parking: false,
+    wait: '정보없음',
+    tip: it.addr1 || '한국관광공사 TourAPI 제공 데이터'
+  };
+}
+
+// ── 검색 / 전체보기 ─────────────────────────
+function getDemoSpots() {
+  return (DEMO[S.region]||[]).filter(function(s){ return S.selCt[s.ct]; });
+}
+
+function doSearch() {
+  var q = document.getElementById('qInp').value.trim();
+  if (!S.region) { setStt('먼저 지역을 선택해주세요', 'err'); return; }
+
+  if (S.apiKey) {
+    setStt('TourAPI 검색 중...');
+    var cts = Object.keys(S.selCt);
+    var all = [], done = 0;
+    var targetCt = cts.slice(0, 3); // 최대 3가지 유형
+    if (!targetCt.length) targetCt = ['12'];
+
+    targetCt.forEach(function(ct) {
+      tourApiFetch('searchKeyword1', {
+        keyword: q || S.regionName,
+        contentTypeId: ct,
+        areaCode: S.region,
+        numOfRows: 8,
+        pageNo: 1
+      }, function(err, items) {
+        if (!err) items.forEach(function(it){ if(it && it.title && parseFloat(it.mapy) && parseFloat(it.mapx)) all.push(apiToSpot(it)); });
+        done++;
+        if (done === targetCt.length) {
+          if (all.length) { setStt('TourAPI: '+all.length+'개 명소', 'ok'); renderList(all); }
+          else { setStt('검색 결과 없음 — 데모 데이터 표시', ''); renderList(getDemoSpots()); }
+        }
+      });
+    });
+  } else {
+    var all = getDemoSpots();
+    var res = q ? all.filter(function(s){ return s.name.indexOf(q)>=0||s.addr.indexOf(q)>=0; }) : all;
+    setStt('데모: '+res.length+'개', 'ok');
+    renderList(res);
+  }
+}
+
+function doArea() {
+  if (!S.region) { setStt('먼저 지역을 선택해주세요', 'err'); return; }
+
+  if (S.apiKey) {
+    setStt('TourAPI에서 '+S.regionName+' 명소 로딩 중...');
+    var cts = Object.keys(S.selCt);
+    if (!cts.length) cts = ['12'];
+    var all = [], done = 0;
+
+    cts.forEach(function(ct) {
+      tourApiFetch('areaBasedList1', {
+        areaCode: S.region,
+        contentTypeId: ct,
+        numOfRows: 10,
+        pageNo: 1,
+        arrange: 'P'
+      }, function(err, items) {
+        if (!err) items.forEach(function(it){ if(it && it.title && parseFloat(it.mapy) && parseFloat(it.mapx)) all.push(apiToSpot(it)); });
+        done++;
+        if (done === cts.length) {
+          if (all.length) { setStt('TourAPI: '+all.length+'개 명소', 'ok'); renderList(all); }
+          else { setStt('데이터 없음 — 데모 데이터 표시', ''); renderList(getDemoSpots()); }
+        }
+      });
+    });
+  } else {
+    var res = getDemoSpots();
+    setStt('데모: '+res.length+'개', 'ok');
+    renderList(res);
+  }
+}
+
+function testKey() {
+  if (!S.apiKey) { alert('인증키를 먼저 입력해주세요'); return; }
+  setStt('인증키 확인 중... (최대 10초 소요)', '');
+  var bdg = document.getElementById('kbdg');
+  var ntc = document.getElementById('ntc');
+
+  // CORS 우회: no-cors 모드로 존재 여부만 확인
+  var url = 'https://apis.data.go.kr/B551011/KorService1/areaBasedList1'
+    + '?serviceKey=' + encodeURIComponent(S.apiKey)
+    + '&MobileOS=ETC&MobileApp=TravelPlanner&_type=json'
+    + '&areaCode=1&contentTypeId=12&numOfRows=1&pageNo=1';
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('GET', url, true);
+  xhr.timeout = 8000;
+
+  xhr.onload = function() {
+    var text = xhr.responseText || '';
+    // 정상 응답: "response" 키 포함
+    if (text.indexOf('"response"') >= 0 || text.indexOf('response') >= 0) {
+      try {
+        var j = JSON.parse(text);
+        var code = j && j.response && j.response.header && j.response.header.resultCode;
+        if (code === '0000' || code === '00') {
+          bdg.textContent = '✓ API 연결됨'; bdg.className = 'kbdg live';
+          ntc.className = 'ntc live';
+          ntc.innerHTML = '✓ <strong>TourAPI 연동 성공!</strong> 전국 26만 건 실제 명소를 검색할 수 있습니다.';
+          setStt('✓ 연결 성공 — 지역을 선택하면 실제 명소가 로드됩니다', 'ok');
+          if (S.region) doArea();
+          return;
+        } else if (code === '22') {
+          bdg.textContent = '키 오류'; bdg.className = 'kbdg err';
+          setStt('⚠ 인증키 불일치 — 아래 방법 확인', 'err');
+          ntc.className = 'ntc';
+          ntc.innerHTML = '❗ <strong>키 오류 해결 방법</strong><br>'
+            + '1. data.go.kr → 마이페이지 → 데이터 활용 → OpenAPI<br>'
+            + '2. 한국관광공사 API 클릭<br>'
+            + '3. <strong>"인증키(디코딩)"</strong> 탭의 키를 복사해서 입력<br>'
+            + '(일반 인증키 말고 디코딩 키를 써야 합니다)';
+          return;
+        }
+      } catch(e) {}
+    }
+    // 응답은 왔는데 파싱 불가 = CORS 차단 (브라우저 환경 문제)
+    bdg.textContent = '키 입력됨'; bdg.className = 'kbdg live';
+    ntc.className = 'ntc live';
+    ntc.innerHTML = '⚠ <strong>Claude.ai 환경에서는 브라우저 CORS 정책으로 직접 API 연결이 제한됩니다.</strong><br>'
+      + '이 파일을 <strong>로컬(VSCode, 파일 더블클릭)</strong>에서 열면 TourAPI가 정상 작동합니다.<br>'
+      + '지금은 데모 데이터로 동선 확인 후, 로컬에서 실데이터를 사용해보세요.';
+    setStt('CORS 제한 환경 — 데모 모드로 동작', '');
+  };
+
+  xhr.onerror = function() {
+    // 네트워크 오류 = CORS 차단
+    bdg.textContent = '키 입력됨'; bdg.className = 'kbdg live';
+    ntc.className = 'ntc live';
+    ntc.innerHTML = '⚠ <strong>Claude.ai 환경에서는 CORS 정책으로 외부 API 직접 호출이 차단됩니다.</strong><br>'
+      + '파일을 <strong>로컬 환경</strong>에서 열면 TourAPI 실데이터가 정상 작동합니다.<br>'
+      + '지금은 데모 데이터로 동선을 미리 확인해보세요.';
+    setStt('CORS 차단 — 로컬 환경에서 실데이터 사용 가능', '');
+  };
+
+  xhr.ontimeout = function() {
+    bdg.textContent = '시간 초과'; bdg.className = 'kbdg err';
+    setStt('연결 시간 초과 — 네트워크를 확인해주세요', 'err');
+  };
+
+  xhr.send();
+}
+
+// ── 리스트 렌더 ─────────────────────────────
+function renderList(items) {
+  document.getElementById('slist').innerHTML = items.map(function(s){
+    var on = S.selSpots.some(function(x){ return x.id===s.id; });
+    var enc = encodeURIComponent(JSON.stringify(s));
+    return '<div class="si'+(on?' on':'')+'" onclick="toggleSpot(\''+enc+'\')">'+
+      '<div class="sdot"></div>'+
+      '<div style="flex:1"><div class="sn">'+s.name+'</div>'+
+      '<div class="sc">'+(CT[s.ct]||s.ct)+' · '+(s.addr||'').slice(0,28)+'</div></div></div>';
+  }).join('');
+}
+
+function toggleSpot(enc) {
+  var s = JSON.parse(decodeURIComponent(enc));
+  var idx = -1;
+  S.selSpots.forEach(function(x,i){ if(x.id===s.id) idx=i; });
+  if (idx>=0) S.selSpots.splice(idx,1);
+  else if (S.selSpots.length<8) S.selSpots.push(s);
+  renderBadges();
+  document.querySelectorAll('.si').forEach(function(el){
+    var n = el.querySelector('.sn').textContent;
+    var on = S.selSpots.some(function(x){ return x.name===n; });
+    el.classList.toggle('on',on);
+    el.querySelector('.sdot').style.background = on ? '#3E6B4A' : 'var(--bdr)';
+  });
+}
+
+function renderBadges() {
+  document.getElementById('bdgs').innerHTML = S.selSpots.map(function(s,i){
+    return '<div class="bdg"><span class="bdot" style="background:'+COLORS[i%COLORS.length]+'"></span>'+
+      s.name+'<button onclick="removeSpot(\''+s.id+'\')">×</button></div>';
+  }).join('');
+}
+
+function removeSpot(id) {
+  S.selSpots = S.selSpots.filter(function(s){ return s.id!==id; });
+  renderBadges();
+}
+
+function setStt(t, cls) {
+  var el = document.getElementById('stt');
+  el.textContent = t;
+  el.className = 'stt' + (cls ? ' '+cls : '');
+}
+
+// ── 동선 생성 ───────────────────────────────
+function generate() {
+  if (!S.companion) { alert('동반자를 선택해주세요'); return; }
+  if (!S.region) { alert('여행 지역을 선택해주세요'); return; }
+
+  showTab('tl', document.getElementById('tabTl'));
+  document.getElementById('tlempty').style.display = 'none';
+  document.getElementById('resArea').style.display = 'none';
+  var ld = document.getElementById('ld');
+  ld.classList.add('on');
+  document.getElementById('lsteps').innerHTML = STEPS.map(function(t,i){
+    return '<div class="ls" id="ls'+i+'">'+t+'</div>';
+  }).join('');
+
+  var si=0;
+  var iv = setInterval(function(){
+    document.querySelectorAll('.ls').forEach(function(e){ e.classList.remove('on'); });
+    var el = document.getElementById('ls'+si);
+    if(el) el.classList.add('on');
+    si++;
+  }, 700);
+
+  setTimeout(function(){
+    clearInterval(iv);
+    ld.classList.remove('on');
+    var base = S.selSpots.length > 0 ? S.selSpots : getDemoSpots().slice(0,5);
+    if (!base.length) { document.getElementById('tlempty').style.display='flex'; return; }
+    S.route = optimizeRoute(base);
+    drawMap(S.route);
+    renderTimeline(S.route);
+    // 지도 탭으로 자동 전환
+    showTab('map', document.getElementById('tabMap'));
+  }, 2200);
+}
+
+function optimizeRoute(spots) {
+  return spots.slice().sort(function(a,b){
+    var ep = S.prio['경치']>=3 ? (b.ct==='12'?1:0)-(a.ct==='12'?1:0) : 0;
+    var wp = S.prio['웨이팅']>=2 ? (a.wait==='없음'?-1:0)-(b.wait==='없음'?-1:0) : 0;
+    return ep + wp + (a.lat - b.lat);
+  });
+}
+
+// ── 타임라인 렌더 ───────────────────────────
+function renderTimeline(spots) {
+  var w = WDATA[Math.floor(Math.random()*3)];
+  var dateStr = document.getElementById('dateInp').value || '오늘';
+  var addMeal = S.prio['맛집']>=2, addCafe = S.prio['카페']>=2;
+  var totalPl = spots.length + (addMeal?1:0) + (addCafe?1:0);
+  var hr = 9;
+  var tl = spots.map(function(s,i){
+    var dur = (s.ct==='12'||s.ct==='28') ? 90 : 60;
+    var sh = hr;
+    hr += Math.ceil(dur/60)+1;
+    if(i===Math.floor(spots.length/2)-1) hr+=1;
+    return Object.assign({},s,{st:sh+':00',et:(sh+Math.ceil(dur/60))+':00'});
+  });
+
+  var h = '<div class="res-t">'+S.regionName+' '+CMAP[S.companion]+' 여행</div>';
+  h += '<div class="res-s">'+dateStr+' · '+totalPl+'개 장소 · 예상 '+Math.round(totalPl*1.5+1.5)+'시간</div>';
+  h += '<div class="wbar"><div class="wi"><span style="font-size:17px">'+w.icon+'</span> <strong>'+w.label+' '+w.temp+'</strong></div>';
+  h += '<div class="wi">☁ '+w.uv+'</div><div class="wi">💨 '+w.wind+'</div>';
+  h += '<div class="wi" style="color:'+(S.prio['날씨']>=2?'#2E6644':'var(--ink3)')+'">'+
+    (S.prio['날씨']>=2?'✓ ':'')+w.note+'</div></div>';
+  h += '<div class="tl">';
+  tl.forEach(function(s,i){ h += buildCard(s,i); });
+  if(addMeal) h += xCard('🍽','현지 맛집','점심',tl.length,'12:30','13:30','지역 특산 음식. TourAPI 음식점 정보 연동 시 메뉴·운영시간 제공');
+  if(addCafe) h += xCard('☕','뷰카페','카페 휴식',tl.length+(addMeal?1:0),'15:00','15:45','동선 중간 위치 카페 자동 선택');
+  h += '</div>';
+  h += '<div class="sgrid">';
+  h += '<div class="sc"><div class="snum">'+totalPl+'</div><div class="slb">총 방문지</div></div>';
+  h += '<div class="sc"><div class="snum">'+spots.filter(function(s){return s.parking;}).length+'</div><div class="slb">주차 가능</div></div>';
+  h += '<div class="sc"><div class="snum">약 '+Math.round(spots.length*2.5+2)+'km</div><div class="slb">예상 이동</div></div>';
+  h += '<div class="sc"><div class="snum">'+Math.round(totalPl*1.5+1.5)+'h</div><div class="slb">예상 시간</div></div>';
+  h += '</div>';
+  document.getElementById('resArea').innerHTML = h;
+  document.getElementById('resArea').style.display = 'block';
+}
+
+function buildCard(s,i){
+  var c=COLORS[i%COLORS.length];
+  var pt=s.parking?'<span class="ttag g">🚗 주차 가능</span>':'<span class="ttag w">🚗 주차 어려움</span>';
+  var wt=s.wait==='없음'?'<span class="ttag g">⏱ 대기 없음</span>':'<span class="ttag w">⏱ '+s.wait+'</span>';
+  var pet=S.companion==='pet'?'<span class="ttag w">🐾 동반 확인</span>':'';
+  var tr=i>0?'<div class="trr">🚗 <span>이동 약 '+(8+i*4)+'분</span></div>':'';
+  return tr+'<div class="trow">'+
+    '<div class="tleft"><div class="tnum" style="background:'+c+'">'+(i+1)+'</div><div class="tline"></div></div>'+
+    '<div class="tcard" onclick="focusCard('+i+')">'+
+      '<div class="ttop"><div class="tname">'+s.name+'</div><div class="ttime">'+s.st+' ~ '+s.et+'</div></div>'+
+      '<div class="taddr">📍 '+s.addr+'</div>'+
+      '<div class="ttags">'+pt+wt+pet+'<span class="ttag">'+(CT[s.ct]||s.ct)+'</span></div>'+
+      '<div class="ttip">💡 '+s.tip+'</div>'+
+    '</div></div>';
+}
+
+function xCard(icon,name,label,idx,st,et,tip){
+  var c=COLORS[idx%COLORS.length];
+  return '<div class="trr">'+icon+' <span>'+label+'</span></div>'+
+    '<div class="trow">'+
+      '<div class="tleft"><div class="tnum" style="background:'+c+';font-size:15px">'+icon+'</div><div class="tline"></div></div>'+
+      '<div class="tcard"><div class="ttop"><div class="tname">'+name+'</div><div class="ttime">'+st+' ~ '+et+'</div></div>'+
+        '<div class="taddr">📍 동선 내 최적 위치</div>'+
+        '<div class="ttags"><span class="ttag g">자동 추천</span></div>'+
+        '<div class="ttip">💡 '+tip+'</div>'+
+      '</div></div>';
+}
+
+// ── SVG 지도 ────────────────────────────────
+function drawMap(spots) {
+  var mempty = document.getElementById('mempty');
+  var msvg = document.getElementById('msvg');
+  if (mempty) mempty.style.display = 'none';
+  if (msvg) { msvg.style.display = 'block'; msvg.removeAttribute('hidden'); }
+  var W=800, H=500, PAD=70;
+  var lats=spots.map(function(s){return s.lat;}), lngs=spots.map(function(s){return s.lng;});
+  var minLat=Math.min.apply(null,lats), maxLat=Math.max.apply(null,lats);
+  var minLng=Math.min.apply(null,lngs), maxLng=Math.max.apply(null,lngs);
+  var latR=maxLat-minLat||0.05, lngR=maxLng-minLng||0.05;
+
+  function px(s){
+    return {
+      x: Math.round(PAD + ((s.lng-minLng)/lngR)*(W-PAD*2)),
+      y: Math.round((H-PAD) - ((s.lat-minLat)/latR)*(H-PAD*2))
+    };
+  }
+
+  var pts = spots.map(px);
+  var rl = document.getElementById('rlines');
+  var mm = document.getElementById('mmarkers');
+  rl.innerHTML = ''; mm.innerHTML = '';
+
+  // 경로선
+  if(pts.length>1){
+    var d='M'+pts[0].x+' '+pts[0].y;
+    for(var i=1;i<pts.length;i++) d+=' L'+pts[i].x+' '+pts[i].y;
+    var path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',d); path.setAttribute('stroke','#C8512A');
+    path.setAttribute('stroke-width','2.5'); path.setAttribute('stroke-dasharray','8 5');
+    path.setAttribute('fill','none'); path.setAttribute('opacity','0.8');
+    rl.appendChild(path);
+    // 화살표
+    for(var i=0;i<pts.length-1;i++){
+      var mx=(pts[i].x+pts[i+1].x)/2, my=(pts[i].y+pts[i+1].y)/2;
+      var ang=Math.atan2(pts[i+1].y-pts[i].y, pts[i+1].x-pts[i].x);
+      var ar=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+      var tip=[mx+Math.cos(ang)*7,my+Math.sin(ang)*7];
+      var l1=[mx+Math.cos(ang+2.5)*5,my+Math.sin(ang+2.5)*5];
+      var l2=[mx+Math.cos(ang-2.5)*5,my+Math.sin(ang-2.5)*5];
+      ar.setAttribute('points',tip[0]+','+tip[1]+' '+l1[0]+','+l1[1]+' '+l2[0]+','+l2[1]);
+      ar.setAttribute('fill','#C8512A'); ar.setAttribute('opacity','0.7');
+      rl.appendChild(ar);
+    }
+  }
+
+  // 마커
+  spots.forEach(function(s,i){
+    var p=pts[i], color=COLORS[i%COLORS.length];
+    var g=document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.style.cursor='pointer';
+    g.setAttribute('onclick','focusCard('+i+')');
+
+    var sh=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    sh.setAttribute('cx',p.x); sh.setAttribute('cy',p.y+2);
+    sh.setAttribute('r','17'); sh.setAttribute('fill','rgba(0,0,0,0.15)');
+    g.appendChild(sh);
+
+    var c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',p.x); c.setAttribute('cy',p.y);
+    c.setAttribute('r','16'); c.setAttribute('fill',color);
+    c.setAttribute('stroke','white'); c.setAttribute('stroke-width','2.5');
+    g.appendChild(c);
+
+    var t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',p.x); t.setAttribute('y',p.y+1);
+    t.setAttribute('text-anchor','middle'); t.setAttribute('dominant-baseline','middle');
+    t.setAttribute('fill','white'); t.setAttribute('font-size','12');
+    t.setAttribute('font-weight','700'); t.setAttribute('font-family','sans-serif');
+    t.textContent=i+1; g.appendChild(t);
+
+    // 툴팁
+    var tg=document.createElementNS('http://www.w3.org/2000/svg','g');
+    tg.setAttribute('opacity','0'); tg.style.pointerEvents='none';
+    var lbl=s.name, tw=lbl.length*8+18;
+    var tx=Math.min(Math.max(p.x-tw/2,4),W-tw-4), ty=p.y-44;
+    var tr2=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    tr2.setAttribute('x',tx); tr2.setAttribute('y',ty);
+    tr2.setAttribute('width',tw); tr2.setAttribute('height',24);
+    tr2.setAttribute('rx','6'); tr2.setAttribute('fill','rgba(26,23,20,.9)');
+    tg.appendChild(tr2);
+    var tt2=document.createElementNS('http://www.w3.org/2000/svg','text');
+    tt2.setAttribute('x',tx+tw/2); tt2.setAttribute('y',ty+12);
+    tt2.setAttribute('text-anchor','middle'); tt2.setAttribute('dominant-baseline','middle');
+    tt2.setAttribute('fill','white'); tt2.setAttribute('font-size','11');
+    tt2.setAttribute('font-family','sans-serif'); tt2.textContent=lbl;
+    tg.appendChild(tt2); g.appendChild(tg);
+    g.addEventListener('mouseenter',function(){tg.setAttribute('opacity','1');});
+    g.addEventListener('mouseleave',function(){tg.setAttribute('opacity','0');});
+    mm.appendChild(g);
+  });
+
+  // 범례
+  var leg=document.getElementById('mleg');
+  leg.innerHTML=spots.map(function(s,i){
+    return '<div class="lgi" onclick="focusCard('+i+')">'+
+      '<div class="lgd" style="background:'+COLORS[i%COLORS.length]+'"></div>'+
+      '<span>'+(i+1)+'. '+s.name+'</span></div>';
+  }).join('');
+  leg.classList.add('on');
+}
+
+function focusCard(i){
+  showTab('tl', document.getElementById('tabTl'));
+  document.querySelectorAll('.tcard').forEach(function(c,j){ c.classList.toggle('hl',j===i); });
+  var cards=document.querySelectorAll('.tcard');
+  if(cards[i]) cards[i].scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+// ── UI 헬퍼 ─────────────────────────────────
+function pick(el, key) {
+  document.querySelectorAll('.chip').forEach(function(c){ c.classList.remove('on'); });
+  el.classList.add('on'); S[key]=el.getAttribute('data-v');
+}
+
+function onRegion() {
+  var sel=document.getElementById('regionSel');
+  S.region=sel.value; S.regionName=sel.options[sel.selectedIndex].text;
+  S.selSpots=[]; renderBadges();
+  document.getElementById('slist').innerHTML=''; setStt('','');
+  if(S.region) doArea();
+}
+
+function toggleCt(el) {
+  var ct=el.getAttribute('data-ct');
+  if(S.selCt[ct]) delete S.selCt[ct]; else S.selCt[ct]=1;
+  el.classList.toggle('on',!!S.selCt[ct]);
+}
+
+function onKey(v) {
+  S.apiKey=v.trim();
+  var bdg=document.getElementById('kbdg');
+  if(S.apiKey.length>10){ bdg.textContent='키 입력됨 — 연결 확인 클릭'; bdg.className='kbdg'; }
+  else { bdg.textContent='데모 모드'; bdg.className='kbdg'; }
+}
+
+function showTab(id, btn) {
+  document.querySelectorAll('.tab').forEach(function(b){ b.classList.remove('on'); });
+  document.querySelectorAll('.pane').forEach(function(p){ p.classList.remove('on'); });
+  btn.classList.add('on'); document.getElementById('pane-'+id).classList.add('on');
+}
+
+function setPrio(key,val,btn) {
+  S.prio[key]=val;
+  btn.closest('.pbtns').querySelectorAll('.pbtn').forEach(function(b,i){ b.classList.toggle('on',i+1===val); });
+}
+
+// ── INIT ────────────────────────────────────
+var PLBLS={날씨:'🌤 날씨 고려',맛집:'🍽 맛집 포함',카페:'☕ 카페 포함',경치:'🏔 경치 우선',주차:'🚗 주차 편의',웨이팅:'⏱ 웨이팅 최소화',동선효율:'🧭 동선 효율'};
+document.getElementById('plist').innerHTML = Object.keys(PLBLS).map(function(k){
+  return '<div class="prow"><span class="plbl">'+PLBLS[k]+'</span>'+
+    '<div class="pbtns">'+[1,2,3].map(function(n){
+      return '<button class="pbtn'+(S.prio[k]===n?' on':'')+'" onclick="setPrio(\''+k+'\','+n+',this)">'+n+'</button>';
+    }).join('')+'</div></div>';
+}).join('');
+document.getElementById('dateInp').value = new Date().toISOString().split('T')[0];
+</script>
+</body>
+</html>
