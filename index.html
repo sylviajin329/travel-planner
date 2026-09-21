@@ -478,65 +478,68 @@ function doSearch() {
 }
 
 function doArea() {
-  if (true) {
-    setStt('');
-    var cts = Object.keys(S.selCt);
-    if (!cts.length) cts = ['12'];
-    var all = [], done = 0;
-    cts.forEach(function(ct) {
-      tourApiJsonp('areaBasedList2', {
-        areaCode: 39,
-        contentTypeId: ct,
-        numOfRows: 100, pageNo: 1, arrange: 'P'
-      }, function(err, items) {
-        if (!err) items.forEach(function(it){
-          if (it && it.title && parseFloat(it.mapy) && parseFloat(it.mapx)) {
-            var s = apiToSpot(it);
-            if (S.zone === 'all' || s.zone === S.zone) all.push(s);
-          }
-        });
-        done++;
-        if (done === cts.length) {
-          // locationBasedList2로 주변 명소 추가 보강
-          var ZONE_LAT = {all:33.38,east:33.46,west:33.39,south:33.25,halla:33.38};
-          var ZONE_LNG = {all:126.55,east:126.93,west:126.25,south:126.55,halla:126.53};
-          var mapLat = ZONE_LAT[S.zone] || 33.38;
-          var mapLng = ZONE_LNG[S.zone] || 126.55;
-          tourApiJsonp('locationBasedList2', {
-            mapX: mapLng, mapY: mapLat, radius: 20000,
-            numOfRows: 50, pageNo: 1, arrange: 'E'
-          }, function(err2, items2) {
-            if (!err2) items2.forEach(function(it){
-              if (it && it.title && parseFloat(it.mapy) && parseFloat(it.mapx)) {
-                var s = apiToSpot(it);
-                var exists = all.some(function(x){ return x.id === s.id; });
-                if (!exists && (S.zone === 'all' || s.zone === S.zone)) all.push(s);
-              }
-            });
-            // syncCache 병합 (API 4 최신 명소)
-            if (S._syncCache) {
-              S._syncCache.forEach(function(s) {
-                var exists = all.some(function(x){ return x.id === s.id; });
-                if (!exists && (S.zone === 'all' || s.zone === S.zone)) all.push(s);
-              });
-            }
-            // JEJU_SPOTS(고정 명소)와 TourAPI 결과 병합
-          var fixed = getFilteredDemo();
-          fixed.forEach(function(s) {
-            var exists = all.some(function(x){ return x.name === s.name; });
-            if (!exists) all.unshift(s); // 고정 명소를 앞에 추가
-          });
-          if (all.length) { setStt(''); renderList(all); }
-          else { setStt(''); renderList(getFilteredDemo()); }
-          });
+  setStt('');
+  var cts = Object.keys(S.selCt);
+  if (!cts.length) cts = ['12'];
+  var all = [];
+  var totalCalls = cts.length * 2; // 각 카테고리 2페이지
+  var done = 0;
+
+  function onDone() {
+    done++;
+    if (done < totalCalls) return;
+    // locationBasedList2 추가
+    var ZONE_LAT = {all:33.38,east:33.46,west:33.39,south:33.25,halla:33.38};
+    var ZONE_LNG = {all:126.55,east:126.93,west:126.25,south:126.55,halla:126.53};
+    tourApiJsonp('locationBasedList2', {
+      mapX: ZONE_LNG[S.zone]||126.55, mapY: ZONE_LAT[S.zone]||33.38,
+      radius: S.zone==='all'?50000:25000,
+      numOfRows: 100, pageNo: 1, arrange: 'E'
+    }, function(err2, items2) {
+      if (!err2 && items2) items2.forEach(function(it){
+        if (it && it.title && parseFloat(it.mapy) && parseFloat(it.mapx)) {
+          var s = apiToSpot(it);
+          var exists = all.some(function(x){ return x.id===s.id; });
+          if (!exists && (S.zone==='all'||s.zone===S.zone)) all.push(s);
         }
       });
+      if (all.length) { setStt(''); renderList(all); }
+      else { setStt(''); renderList(getFilteredDemo()); }
     });
-  } else {
-    var res = getFilteredDemo();
-    setStt('');
-    renderList(res);
   }
+
+  cts.forEach(function(ct) {
+    // 페이지 1
+    tourApiJsonp('areaBasedList2', {
+      areaCode:39, contentTypeId:ct, numOfRows:100, pageNo:1, arrange:'P'
+    }, function(err, items) {
+      if (!err && items) items.forEach(function(it){
+        if (it && it.title && parseFloat(it.mapy) && parseFloat(it.mapx)) {
+          var s = apiToSpot(it);
+          if (S.zone==='all'||s.zone===S.zone) {
+            var exists = all.some(function(x){ return x.id===s.id; });
+            if (!exists) all.push(s);
+          }
+        }
+      });
+      onDone();
+    });
+    // 페이지 2
+    tourApiJsonp('areaBasedList2', {
+      areaCode:39, contentTypeId:ct, numOfRows:100, pageNo:2, arrange:'P'
+    }, function(err, items) {
+      if (!err && items) items.forEach(function(it){
+        if (it && it.title && parseFloat(it.mapy) && parseFloat(it.mapx)) {
+          var s = apiToSpot(it);
+          if (S.zone==='all'||s.zone===S.zone) {
+            var exists = all.some(function(x){ return x.id===s.id; });
+            if (!exists) all.push(s);
+          }
+        }
+      });
+      onDone();
+    });
+  });
 }
 
 function testKey() {
