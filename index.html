@@ -239,48 +239,46 @@ body{display:flex;flex-direction:column;}
         </div>
         <div class="detail-popup" id="detailPopup"><button class="dp-close" onclick="closePopup()">×</button><div class="dp-name" id="dpName"></div><div class="dp-type" id="dpType"></div><div class="dp-tip" id="dpTip"></div></div>
         <svg class="map-svg" id="msvg" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="2" dy="3" stdDeviation="4" flood-color="rgba(0,0,0,0.15)"/>
-            </filter>
-          </defs>
-          <!-- 바다 배경 -->
-          <rect width="800" height="500" fill="#C8DFF0"/>
-          <!-- 바다 텍스처 -->
-          <text x="100" y="60" font-size="10" fill="#B0CFEA" font-family="sans-serif" opacity=".5">제주해협</text>
-          <text x="100" y="460" font-size="10" fill="#B0CFEA" font-family="sans-serif" opacity=".5">남해</text>
-          <!-- 제주도 본섬 -->
-          <path d="M109.2,108.1 L134.1,101.8 L165.9,96.3 L194.6,89.2 L226.3,82.8 L258.0,78.1 L290.5,72.6 L326.0,68.7 L360.7,65.5 L396.2,68.7 L431.7,72.6 L464.2,76.5 L496.7,78.9 L529.9,80.5 L562.4,82.8 L594.9,86.0 L625.1,92.3 L652.3,101.8 L673.4,112.8 L693.1,122.3 L704.4,133.3 L711.2,145.9 L708.2,158.5 L700.6,169.6 L690.8,180.6 L678.0,190.9 L664.4,201.1 L650.8,212.2 L635.7,224.8 L622.8,238.2 L607.7,251.6 L596.4,265.8 L582.8,280.0 L567.7,293.4 L552.6,306.8 L536.0,319.4 L517.1,328.8 L496.7,338.3 L474.0,344.6 L451.4,348.6 L428.7,350.9 L406.0,350.9 L383.4,348.6 L360.7,346.2 L338.1,344.6 L315.4,346.2 L292.7,348.6 L270.1,352.5 L247.4,356.4 L224.8,360.4 L202.1,362.0 L179.4,362.0 L156.8,358.8 L135.6,354.1 L116.8,346.2 L101.6,335.2 L91.8,322.5 L86.5,309.1 L84.3,295.7 L84.3,281.5 L86.5,267.3 L90.3,253.2 L94.1,238.2 L96.4,223.2 L97.9,209.0 L99.4,194.8 L101.6,180.6 L103.9,166.4 L105.4,152.2 L105.4,138.0 L106.9,125.4 L107.7,116.0 L109.2,108.1Z" fill="#E5EDDA" stroke="#7A9E65" stroke-width="2" stroke-linejoin="round" filter="url(#shadow)"/>
-          <!-- 부속 섬들 -->
-          <path d="M696.8,117.5 L703.6,109.7 L715.7,112.0 L721.0,119.9 L715.7,127.8 L703.6,125.4 L696.8,117.5Z" fill="#E5EDDA" stroke="#7A9E65" stroke-width="1.2"/>
-          <path d="M187.0,425.0 L192.3,421.1 L197.6,425.0 L192.3,429.8 L187.0,425.0Z" fill="#E5EDDA" stroke="#7A9E65" stroke-width="1"/>
-          <path d="M164.3,183.0 L169.6,177.5 L174.9,180.6 L171.9,186.9 L164.3,183.0Z" fill="#E5EDDA" stroke="#7A9E65" stroke-width="1"/>
-          <!-- 섬 이름 -->
-          <text x="709.7" y="108.0" text-anchor="middle" font-size="8" fill="#6B8A55" font-family="sans-serif">우도</text>
-          <text x="192.3" y="418.0" text-anchor="middle" font-size="7" fill="#6B8A55" font-family="sans-serif">마라도</text>
-          <!-- 권역 구분선 -->
-          <line x1="324.5" y1="45.0" x2="324.5" y2="455.0" stroke="#8BAE6E" stroke-width="1.2" stroke-dasharray="6 4" opacity=".7"/>
-          <line x1="513.3" y1="45.0" x2="513.3" y2="455.0" stroke="#8BAE6E" stroke-width="1.2" stroke-dasharray="6 4" opacity=".7"/>
-          <line x1="45.0" y1="242.1" x2="755.0" y2="242.1" stroke="#8BAE6E" stroke-width="1.2" stroke-dasharray="6 4" opacity=".7"/>
-          <!-- 한라산 -->
-          <polygon points="384.1,216.7 397.1,239.7 371.1,239.7" fill="#7A9E65" opacity=".8"/>
-          <text x="384.1" y="252.7" text-anchor="middle" font-size="9" fill="#4A7435" font-family="sans-serif" font-weight="bold">한라산 1,950m</text>
-          <!-- 주요 도시 -->
-          <circle cx="385.6" cy="124.6" r="3" fill="#8B6E50" opacity=".7"/>
-          <text x="390.6" y="128.6" font-size="9" fill="#6B5040" font-family="sans-serif">제주시</text>
-          <circle cx="407.6" cy="317.8" r="3" fill="#8B6E50" opacity=".7"/>
-          <text x="412.6" y="321.8" font-size="9" fill="#6B5040" font-family="sans-serif">서귀포시</text>
-          <!-- 권역 레이블 -->
-          <text x="543.3" y="150" text-anchor="middle" font-size="12" fill="#C8512A" font-family="sans-serif" font-weight="bold" opacity=".8">동부</text>
-          <text x="269.5" y="190" text-anchor="middle" font-size="12" fill="#3E6B4A" font-family="sans-serif" font-weight="bold" opacity=".8">서부</text>
-          <text x="400" y="430" text-anchor="middle" font-size="12" fill="#3B5FA0" font-family="sans-serif" font-weight="bold" opacity=".8">남부</text>
-          <text x="379.1" y="165" text-anchor="middle" font-size="11" fill="#8B4BAB" font-family="sans-serif" font-weight="bold" opacity=".8">한라</text>
-          <!-- 명소 힌트 -->
-          <text x="691.8" y="172.0" text-anchor="middle" font-size="8" fill="#A08060" font-family="sans-serif" opacity=".8">성산일출봉</text>
-          <text x="165.1" y="222.4" text-anchor="middle" font-size="8" fill="#A08060" font-family="sans-serif" opacity=".8">협재</text>
-          <g id="rlines"></g>
-          <g id="mmarkers"></g>
-        </svg>
+  <defs>
+    <filter id="isl-sh"><feDropShadow dx="3" dy="4" stdDeviation="7" flood-color="rgba(0,80,160,0.2)"/></filter>
+    <linearGradient id="sea-g" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#B5D5EE"/>
+      <stop offset="100%" stop-color="#C5E0F5"/>
+    </linearGradient>
+    <linearGradient id="land-g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#D8EAC2"/>
+      <stop offset="100%" stop-color="#C8DFB0"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#sea-g)"/>
+  <text x="55" y="50" font-size="11" fill="#90C0E0" font-family="sans-serif" opacity=".65">제 주 해 협</text>
+  <text x="55" y="475" font-size="11" fill="#90C0E0" font-family="sans-serif" opacity=".65">남 해</text>
+  <text x="720" y="475" font-size="11" fill="#90C0E0" font-family="sans-serif" opacity=".65">태평양</text>
+  <path d="M59,105 L72,101 L89,97 L106,93 L126,90 L143,86 L161,82 L182,78 L202,74 L224,71 L248,68 L270,65 L294,62 L319,60 L344,58 L370,59 L394,62 L416,65 L438,68 L460,72 L482,74 L505,75 L529,78 L551,81 L573,86 L595,91 L615,97 L636,105 L654,115 L673,125 L690,137 L704,150 L717,121 L732,128 L736,142 L731,156 L721,169 L707,183 L693,197 L679,211 L663,226 L645,241 L628,256 L610,273 L592,288 L571,302 L551,316 L529,328 L505,338 L480,347 L455,354 L427,359 L400,362 L373,364 L346,364 L319,362 L292,361 L265,361 L238,362 L211,366 L184,371 L158,376 L133,380 L107,381 L84,379 L63,375 L46,367 L38,355 L31,340 L28,323 L28,305 L31,286 L36,267 L41,247 L46,227 L50,207 L52,186 L53,166 L55,145 L56,125 L58,115 L59,105Z" fill="url(#land-g)" stroke="#5A8A48" stroke-width="2.5" stroke-linejoin="round" filter="url(#isl-sh)"/>
+  <path d="M720,115 L726,109 L734,104 L743,108 L747,117 L740,125 L727,123 L720,115Z" fill="#D8EAC2" stroke="#5A8A48" stroke-width="1.5"/>
+  <path d="M147,445 L151,440 L158,444 L154,450 L147,445Z" fill="#D8EAC2" stroke="#5A8A48" stroke-width="1.2"/>
+  <path d="M122,183 L127,178 L134,181 L130,188 L122,183Z" fill="#D8EAC2" stroke="#5A8A48" stroke-width="1.2"/>
+  <text x="735" y="101" text-anchor="middle" font-size="9" fill="#3A6A28" font-family="sans-serif">우도</text>
+  <text x="153" y="437" text-anchor="middle" font-size="8" fill="#3A6A28" font-family="sans-serif">마라도</text>
+  <line x1="302" y1="5" x2="302" y2="495" stroke="#4A7A38" stroke-width="1.5" stroke-dasharray="8 5" opacity=".5"/>
+  <line x1="514" y1="5" x2="514" y2="495" stroke="#4A7A38" stroke-width="1.5" stroke-dasharray="8 5" opacity=".5"/>
+  <line x1="5" y1="250" x2="795" y2="250" stroke="#4A7A38" stroke-width="1.5" stroke-dasharray="8 5" opacity=".5"/>
+  <polygon points="369,217 386,250 352,250" fill="#5A8048" opacity=".85"/>
+  <circle cx="369" cy="231" r="5" fill="white" opacity=".8"/>
+  <text x="369" y="267" text-anchor="middle" font-size="11" fill="#2A5020" font-family="sans-serif" font-weight="bold">한라산</text>
+  <circle cx="371" cy="122" r="5" fill="#C8512A" opacity=".85"/>
+  <text x="379" y="127" font-size="11" fill="#8B2A10" font-family="sans-serif" font-weight="bold">제주시</text>
+  <circle cx="395" cy="332" r="5" fill="#3B5FA0" opacity=".85"/>
+  <text x="403" y="337" font-size="11" fill="#1A3A70" font-family="sans-serif" font-weight="bold">서귀포</text>
+  <text x="569" y="145" text-anchor="middle" font-size="14" fill="#C8512A" font-family="sans-serif" font-weight="bold" opacity=".85">동부</text>
+  <text x="237" y="200" text-anchor="middle" font-size="14" fill="#3E6B4A" font-family="sans-serif" font-weight="bold" opacity=".85">서부</text>
+  <text x="400" y="455" text-anchor="middle" font-size="14" fill="#3B5FA0" font-family="sans-serif" font-weight="bold" opacity=".85">남부</text>
+  <text x="357" y="190" text-anchor="middle" font-size="13" fill="#8B4BAB" font-family="sans-serif" font-weight="bold" opacity=".85">한라</text>
+  <text x="704" y="138" text-anchor="middle" font-size="8" fill="#8B5030" opacity=".8">성산일출봉</text>
+  <text x="124" y="200" text-anchor="middle" font-size="8" fill="#8B5030" opacity=".8">협재</text>
+  <g id="rlines"></g>
+  <g id="mmarkers"></g>
+</svg>
       </div>
       <div class="mleg" id="mleg"></div>
     </div>
@@ -786,16 +784,17 @@ function xCard(icon, name, label, idx, st, et, tip) {
 
 // ── SVG 지도 (제주 좌표 기반) ───────────────
 // 제주 좌표 범위: lat 33.10~33.62, lng 126.10~127.00
-var JEJU_LAT_MIN = 33.08, JEJU_LAT_MAX = 33.60;
-var JEJU_LNG_MIN = 126.08, JEJU_LNG_MAX = 127.02;
+var JEJU_LAT_MIN = 33.11, JEJU_LAT_MAX = 33.59;
+var JEJU_LNG_MIN = 126.14, JEJU_LNG_MAX = 126.99;
 
 function latLngToPx(lat, lng) {
-  var W = 800, H = 500, PAD = 45;
-  var x = Math.round(PAD + ((lng - JEJU_LNG_MIN) / (JEJU_LNG_MAX - JEJU_LNG_MIN)) * (W - PAD*2));
-  var y = Math.round((H - PAD) - ((lat - JEJU_LAT_MIN) / (JEJU_LAT_MAX - JEJU_LAT_MIN)) * (H - PAD*2));
-  x = Math.max(PAD+10, Math.min(W - PAD-10, x));
-  y = Math.max(PAD+10, Math.min(H - PAD-10, y));
-  return {x: x, y: y};
+  var W=800, H=460, PADX=40, PADY=25;
+  var x = Math.round(PADX + (lng-126.14)/(126.99-126.14)*(W-PADX*2));
+  var y = Math.round((H-PADY)+20 - (lat-33.11)/(33.59-33.11)*(H-PADY*2));
+  x = Math.max(50, Math.min(750, x));
+  y = Math.max(30, Math.min(470, y));
+  return {x:x, y:y};
+};
 }
 
 function drawMap(spots) {
