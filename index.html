@@ -56,7 +56,7 @@ body{display:flex;flex-direction:column;}
 .btnp:hover{opacity:.88;}
 .btns{padding:8px 10px;border-radius:8px;border:1px solid var(--bdr);font-size:12px;cursor:pointer;background:transparent;color:var(--ink2);white-space:nowrap;}
 .btns:hover{background:var(--tag);}
-.stt{font-size:11px;color:var(--ink3);min-height:15px;margin:3px 0;}
+.stt{font-size:11px;color:var(--ink3);min-height:0;margin:2px 0;display:none;}
 .stt.err{color:#994020;}
 .stt.ok{color:#2E6644;}
 .slist{max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:4px;}
@@ -440,42 +440,37 @@ function pickZone(el) {
 // ── 검색 / 전체보기 ─────────────────────────
 function doSearch() {
   var q = document.getElementById('qInp').value.trim();
-  if (true) {
-    setStt('TourAPI 검색 중...');
-    var cts = Object.keys(S.selCt).slice(0, 3);
-    if (!cts.length) cts = ['12'];
-    var all = [], done = 0;
-    cts.forEach(function(ct) {
-      tourApiJsonp('searchKeyword2', {
-        keyword: q || '제주',
-        contentTypeId: ct,
-        areaCode: 39,
-        numOfRows: 50, pageNo: 1
-      }, function(err, items) {
-        if (!err) items.forEach(function(it){
-          if (it && it.title && parseFloat(it.mapy) && parseFloat(it.mapx)) {
-            var s = apiToSpot(it);
-            if (S.zone === 'all' || s.zone === S.zone) all.push(s);
-          }
-        });
-        done++;
-        if (done === cts.length) {
-          if (all.length) { setStt('TourAPI: ' + all.length + '개', 'ok'); renderList(all); }
-          else { setStt('검색 없음 — 데모 표시', ''); renderList(getFilteredDemo()); }
+  if (!q) { doArea(); return; }
+  setStt('검색 중...');
+  // 키워드 검색 - contentTypeId 없이 전체 검색 후 필터
+  tourApiJsonp('searchKeyword2', {
+    keyword: q,
+    areaCode: 39,
+    numOfRows: 50, pageNo: 1
+  }, function(err, items) {
+    var all = [];
+    if (!err && items) {
+      items.forEach(function(it){
+        if (it && it.title && parseFloat(it.mapy) && parseFloat(it.mapx)) {
+          var s = apiToSpot(it);
+          // 권역 필터 (전체면 다 표시)
+          if (S.zone === 'all' || s.zone === S.zone) all.push(s);
         }
       });
-    });
-  } else {
-    var res = getFilteredDemo();
-    if (q) res = res.filter(function(s){ return s.name.indexOf(q) >= 0 || s.addr.indexOf(q) >= 0; });
-    setStt('데모: ' + res.length + '개', 'ok');
-    renderList(res);
-  }
+    }
+    if (all.length) {
+      setStt(all.length + '개 검색됨', 'ok');
+      renderList(all);
+    } else {
+      // 검색 결과 없으면 현재 목록 유지하고 안내만
+      setStt('"' + q + '" 검색 결과 없음', 'err');
+    }
+  });
 }
 
 function doArea() {
   if (true) {
-    setStt('TourAPI 제주 명소 로딩 중...');
+    setStt('');
     var cts = Object.keys(S.selCt);
     if (!cts.length) cts = ['12'];
     var all = [], done = 0;
@@ -530,7 +525,7 @@ function doArea() {
 }
 
 function testKey() {
-  setStt('TourAPI 연결 확인 중...', '');
+  setStt('');
   var bdg = document.getElementById('kbdg');
   var ntc = document.getElementById('ntc');
 
@@ -656,6 +651,7 @@ function setStt(t, cls) {
   var el = document.getElementById('stt');
   el.textContent = t;
   el.className = 'stt' + (cls ? ' ' + cls : '');
+  el.style.display = t ? 'block' : 'none';
 }
 
 // ── 동선 생성 ───────────────────────────────
@@ -793,13 +789,37 @@ function renderTimeline(spots) {
   var dateStr = document.getElementById('dateInp').value || '오늘';
   var addMeal = S.prio['맛집'] >= 2, addCafe = S.prio['카페'] >= 2;
   var totalPl = spots.length + (addMeal?1:0) + (addCafe?1:0);
-  var hr = 9;
-  var tl = spots.map(function(s) {
+  var hr = 9, hm = 0; // 9:00 시작
+  // 하루 최대 21:00 기준, 명소 수 조정
+  var MAX_HR = 22;
+  var validSpots = [];
+  var tempHr = 9;
+  spots.forEach(function(s) {
     var dur = (s.ct==='12'||s.ct==='28') ? 90 : 60;
-    var sh = hr;
-    hr += Math.ceil(dur/60) + 1;
-    return Object.assign({}, s, {st:sh+':00', et:(sh+Math.ceil(dur/60))+':00'});
+    var endHr = tempHr + Math.ceil(dur/60) + 0.5; // 이동 30분 포함
+    if (endHr <= MAX_HR) { validSpots.push(s); tempHr = endHr; }
   });
+  if (validSpots.length === 0) validSpots = spots.slice(0, 4);
+
+  var tl = validSpots.map(function(s) {
+    var dur = (s.ct==='12'||s.ct==='28') ? 90 : 60;
+    var sh = Math.floor(hr);
+    var sm = Math.round((hr - sh) * 60);
+    var endMin = sm + dur + 30; // 관람 + 이동 30분
+    var eh = sh + Math.floor(endMin/60);
+    var em = endMin % 60;
+    hr = eh + (em/60);
+    var stStr = sh + ':' + (sm<10?'0':'')+sm;
+    var etStr = sh + ':' + (sm<10?'0':'')+(sm+dur>59?(sm+dur-60):sm+dur<10?'0'+(sm+dur):sm+dur);
+    // 간단하게 시간만
+    var startH = sh;
+    var endH = sh + Math.ceil(dur/60);
+    return Object.assign({}, s, {
+      st: startH + ':00',
+      et: (endH > 23 ? 23 : endH) + ':00'
+    });
+  });
+  spots = validSpots;
 
   // 권역 정보
   var zones = {};
