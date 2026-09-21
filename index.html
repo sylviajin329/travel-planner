@@ -260,9 +260,7 @@ body{display:flex;flex-direction:column;}
   <path d="M122,183 L127,178 L134,181 L130,188 L122,183Z" fill="#D8EAC2" stroke="#5A8A48" stroke-width="1.2"/>
   <text x="735" y="101" text-anchor="middle" font-size="9" fill="#3A6A28" font-family="sans-serif">우도</text>
   <text x="153" y="437" text-anchor="middle" font-size="8" fill="#3A6A28" font-family="sans-serif">마라도</text>
-  <line x1="302" y1="5" x2="302" y2="495" stroke="#4A7A38" stroke-width="1.5" stroke-dasharray="8 5" opacity=".5"/>
-  <line x1="514" y1="5" x2="514" y2="495" stroke="#4A7A38" stroke-width="1.5" stroke-dasharray="8 5" opacity=".5"/>
-  <line x1="5" y1="250" x2="795" y2="250" stroke="#4A7A38" stroke-width="1.5" stroke-dasharray="8 5" opacity=".5"/>
+
   <polygon points="369,217 386,250 352,250" fill="#5A8048" opacity=".85"/>
   <circle cx="369" cy="231" r="5" fill="white" opacity=".8"/>
   <text x="369" y="267" text-anchor="middle" font-size="11" fill="#2A5020" font-family="sans-serif" font-weight="bold">한라산</text>
@@ -693,20 +691,96 @@ function generate() {
 }
 
 // NNA: 가장 가까운 다음 명소로 이동 (권역 고려)
+// ── 동반자별 명소 점수 가중치 ──────────────
+function companionScore(s) {
+  var c = S.companion;
+  var score = 0;
+  // 혼자: 관광지·레포츠 선호, 카페 보통
+  if (c === 'solo') {
+    if (s.ct === '12') score += 2;
+    if (s.ct === '28') score += 1.5;
+    if (s.ct === '39') score += 0.5;
+  }
+  // 커플: 경치·카페·문화시설 선호
+  if (c === 'couple') {
+    if (s.ct === '12') score += 2;
+    if (s.ct === '14') score += 1.5;
+    if (s.ct === '39') score += 1.5; // 카페·음식
+    if (s.parking) score += 0.5;
+  }
+  // 친구: 레포츠·맛집·쇼핑 선호
+  if (c === 'friends') {
+    if (s.ct === '28') score += 2.5;
+    if (s.ct === '38') score += 1.5;
+    if (s.ct === '39') score += 2;
+    if (s.ct === '15') score += 1; // 축제
+  }
+  // 가족: 관광지·체험·주차 필수
+  if (c === 'family') {
+    if (s.ct === '12') score += 2;
+    if (s.ct === '14') score += 1.5;
+    if (s.ct === '28') score += 1;
+    if (s.parking) score += 2; // 주차 매우 중요
+    if (s.wait && s.wait !== '없음') score -= 1; // 웨이팅 회피
+  }
+  // 반려동물: 야외 관광지·레포츠, 웨이팅 없는 곳
+  if (c === 'pet') {
+    if (s.ct === '12') score += 2.5; // 야외 관광지
+    if (s.ct === '28') score += 2;   // 레포츠(해변 등)
+    if (s.ct === '14') score -= 1;   // 실내 문화시설 불리
+    if (s.ct === '38') score -= 1.5; // 쇼핑 불리
+    if (s.parking) score += 1.5;
+    if (s.wait === '없음') score += 1;
+  }
+  // 어르신: 주차 필수, 이동 짧게, 웨이팅 없음, 레포츠 회피
+  if (c === 'senior') {
+    if (s.parking) score += 3;       // 주차 최우선
+    if (s.wait === '없음') score += 2;
+    if (s.ct === '12') score += 1.5;
+    if (s.ct === '14') score += 1;
+    if (s.ct === '28') score -= 1.5; // 체력 소모 회피
+    if (s.ct === '38') score += 0.5;
+  }
+  return score;
+}
+
+// ── 8가지 우선순위 점수 ──────────────────────
+function prioScore(s) {
+  var score = 0;
+  if (S.prio['경치'] >= 2 && s.ct === '12') score += S.prio['경치'] * 0.8;
+  if (S.prio['맛집'] >= 2 && s.ct === '39') score += S.prio['맛집'] * 0.8;
+  if (S.prio['카페'] >= 2 && s.ct === '39') score += S.prio['카페'] * 0.5;
+  if (S.prio['레포츠'] >= 2 && s.ct === '28') score += (S.prio['레포츠']||1) * 0.8;
+  if (S.prio['주차'] >= 2 && s.parking) score += S.prio['주차'] * 0.6;
+  if (S.prio['웨이팅'] >= 2 && s.wait !== '없음') score -= S.prio['웨이팅'] * 0.5;
+  return score;
+}
+
 function optimizeRoute(spots) {
   if (spots.length <= 1) return spots;
-  var remaining = spots.slice();
+
+  // 동반자 + 우선순위 점수로 정렬 후 상위 명소만 선택
+  var scored = spots.map(function(s) {
+    return { spot: s, score: companionScore(s) + prioScore(s) };
+  });
+  scored.sort(function(a,b){ return b.score - a.score; });
+
+  // 상위 명소 우선 선택 (최대 8개)
+  var topSpots = scored.slice(0, Math.min(spots.length, 8)).map(function(x){ return x.spot; });
+
+  // NNA(최근접이웃) 알고리즘으로 동선 최적화
+  var remaining = topSpots.slice();
   var result = [remaining.splice(0, 1)[0]];
   while (remaining.length) {
     var last = result[result.length - 1];
     var bestIdx = 0, bestDist = Infinity;
     remaining.forEach(function(s, i) {
-      var d = Math.pow(s.lat - last.lat, 2) + Math.pow(s.lng - last.lng, 2);
-      // 경치 우선순위 반영
-      var penalty = (S.prio['경치'] >= 3 && s.ct !== '12') ? 0.002 : 0;
-      // 웨이팅 반영
-      var wPenalty = (S.prio['웨이팅'] >= 2 && s.wait !== '없음') ? 0.001 : 0;
-      if (d + penalty + wPenalty < bestDist) { bestDist = d + penalty + wPenalty; bestIdx = i; }
+      var dist = Math.pow(s.lat - last.lat, 2) + Math.pow(s.lng - last.lng, 2);
+      // 동선 효율 우선순위 반영
+      var effPenalty = S.prio['동선효율'] >= 3 ? dist * 0.3 : 0;
+      // 어르신/가족: 이동거리 짧게
+      if (S.companion === 'senior' || S.companion === 'family') effPenalty += dist * 0.5;
+      if (dist + effPenalty < bestDist) { bestDist = dist + effPenalty; bestIdx = i; }
     });
     result.push(remaining.splice(bestIdx, 1)[0]);
   }
@@ -757,7 +831,13 @@ function buildCard(s, i) {
   var c = ZONE_COLORS[s.zone] || COLORS[i % COLORS.length];
   var pt = s.parking ? '<span class="ttag g">🚗 주차 가능</span>' : '<span class="ttag w">🚗 주차 어려움</span>';
   var wt = s.wait==='없음' ? '<span class="ttag g">⏱ 대기 없음</span>' : '<span class="ttag w">⏱ '+s.wait+'</span>';
-  var pet = S.companion==='pet' ? '<span class="ttag w">🐾 동반 확인</span>' : '';
+  var companionTag = '';
+  if (S.companion==='pet') companionTag = '<span class="ttag w">🐾 반려동물 동반 확인</span>';
+  else if (S.companion==='senior') companionTag = s.parking ? '<span class="ttag g">🚗 주차 가능 ✓</span>' : '<span class="ttag w">⚠ 주차 어려움</span>';
+  else if (S.companion==='family') companionTag = '<span class="ttag g">👨‍👩‍👧 가족 추천</span>';
+  else if (S.companion==='couple') companionTag = '<span class="ttag g">👫 커플 추천</span>';
+  else if (S.companion==='friends') companionTag = '<span class="ttag g">👯 친구 추천</span>';
+  var pet = companionTag;
   var znTag = '<span class="ttag" style="background:'+ZONE_BG[s.zone]+';color:'+ZONE_TC[s.zone]+'">📍'+ZONE_LABELS[s.zone]+'권역</span>';
   var tr = i > 0 ? '<div class="trr">🚗 <span>이동 약 '+(10+i*5)+'분</span></div>' : '';
   return tr + '<div class="trow">' +
@@ -921,7 +1001,38 @@ function closePopup() {
 // ── UI 헬퍼 ─────────────────────────────────
 function pick(el, key) {
   document.querySelectorAll('.chip').forEach(function(c){ c.classList.remove('on'); });
-  el.classList.add('on'); S[key] = el.getAttribute('data-v');
+  el.classList.add('on');
+  S[key] = el.getAttribute('data-v');
+
+  // 동반자에 따라 카테고리 자동 조정
+  if (key === 'companion') {
+    var c = S[key];
+    // 전체 초기화 후 동반자별 체크
+    ['12','14','15','28','38','39'].forEach(function(ct){
+      S.selCt[ct] = 1;
+      var btn = document.querySelector('[data-ct="'+ct+'"]');
+      if (btn) btn.classList.add('on');
+    });
+    // 어르신: 레포츠 제외
+    if (c === 'senior') {
+      delete S.selCt['28']; delete S.selCt['15'];
+      var b28 = document.querySelector('[data-ct="28"]');
+      var b15 = document.querySelector('[data-ct="15"]');
+      if (b28) b28.classList.remove('on');
+      if (b15) b15.classList.remove('on');
+    }
+    // 반려동물: 쇼핑 제외, 야외 중심
+    if (c === 'pet') {
+      delete S.selCt['38']; delete S.selCt['14'];
+      var b38 = document.querySelector('[data-ct="38"]');
+      var b14 = document.querySelector('[data-ct="14"]');
+      if (b38) b38.classList.remove('on');
+      if (b14) b14.classList.remove('on');
+    }
+    // 친구: 레포츠·맛집 강조 (전체 유지)
+    // 커플: 전체 유지
+    // 가족: 전체 유지
+  }
 }
 
 function toggleCt(el) {
