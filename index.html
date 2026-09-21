@@ -446,7 +446,7 @@ function doSearch() {
   tourApiJsonp('searchKeyword2', {
     keyword: q,
     areaCode: 39,
-    numOfRows: 50, pageNo: 1
+    numOfRows: 100, pageNo: 1
   }, function(err, items) {
     var all = [];
     if (!err && items) {
@@ -458,11 +458,20 @@ function doSearch() {
         }
       });
     }
+    // JEJU_SPOTS에서도 검색
+    var fixedResults = JEJU_SPOTS.filter(function(s){
+      return s.name.indexOf(q) >= 0 || s.addr.indexOf(q) >= 0;
+    }).filter(function(s){
+      return S.zone === 'all' || s.zone === S.zone;
+    });
+    fixedResults.forEach(function(s){
+      var exists = all.some(function(x){ return x.name === s.name; });
+      if (!exists) all.unshift(s);
+    });
     if (all.length) {
-      setStt(all.length + '개 검색됨', 'ok');
+      setStt('');
       renderList(all);
     } else {
-      // 검색 결과 없으면 현재 목록 유지하고 안내만
       setStt('"' + q + '" 검색 결과 없음', 'err');
     }
   });
@@ -478,7 +487,7 @@ function doArea() {
       tourApiJsonp('areaBasedList2', {
         areaCode: 39,
         contentTypeId: ct,
-        numOfRows: 50, pageNo: 1, arrange: 'P'
+        numOfRows: 100, pageNo: 1, arrange: 'P'
       }, function(err, items) {
         if (!err) items.forEach(function(it){
           if (it && it.title && parseFloat(it.mapy) && parseFloat(it.mapx)) {
@@ -495,7 +504,7 @@ function doArea() {
           var mapLng = ZONE_LNG[S.zone] || 126.55;
           tourApiJsonp('locationBasedList2', {
             mapX: mapLng, mapY: mapLat, radius: 20000,
-            numOfRows: 30, pageNo: 1, arrange: 'E'
+            numOfRows: 50, pageNo: 1, arrange: 'E'
           }, function(err2, items2) {
             if (!err2) items2.forEach(function(it){
               if (it && it.title && parseFloat(it.mapy) && parseFloat(it.mapx)) {
@@ -511,15 +520,21 @@ function doArea() {
                 if (!exists && (S.zone === 'all' || s.zone === S.zone)) all.push(s);
               });
             }
-            if (all.length) { setStt('TourAPI: ' + all.length + '개', 'ok'); renderList(all); }
-            else { setStt('데모 데이터 표시', ''); renderList(getFilteredDemo()); }
+            // JEJU_SPOTS(고정 명소)와 TourAPI 결과 병합
+          var fixed = getFilteredDemo();
+          fixed.forEach(function(s) {
+            var exists = all.some(function(x){ return x.name === s.name; });
+            if (!exists) all.unshift(s); // 고정 명소를 앞에 추가
+          });
+          if (all.length) { setStt(''); renderList(all); }
+          else { setStt(''); renderList(getFilteredDemo()); }
           });
         }
       });
     });
   } else {
     var res = getFilteredDemo();
-    setStt((S.zone === 'all' ? '제주 전체' : ZONE_LABELS[S.zone] + '권역') + ' ' + res.length + '개', 'ok');
+    setStt('');
     renderList(res);
   }
 }
@@ -531,7 +546,7 @@ function testKey() {
 
   // API 4: areaBasedSyncList2 미리 호출해서 최신 명소 캐시
   tourApiJsonp('areaBasedSyncList2', {
-    areaCode: 39, numOfRows: 20, pageNo: 1, listYN: 'Y', arrange: 'R'
+    areaCode: 39, numOfRows: 50, pageNo: 1, listYN: 'Y', arrange: 'R'
   }, function(err, items) {
     if (!err && items) {
       items.forEach(function(it){
