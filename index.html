@@ -892,7 +892,7 @@ function drawMap(spots) {
       path.setAttribute('d','M'+pts[i].x+' '+pts[i].y+' L'+pts[i+1].x+' '+pts[i+1].y);
       path.setAttribute('stroke', ZONE_COLORS[spots[i].zone] || '#C8512A');
       path.setAttribute('stroke-width','2.5');
-      path.setAttribute('stroke-dasharray','8 5');
+      // 실선 동선
       path.setAttribute('fill','none');
       path.setAttribute('opacity','0.75');
       rl.appendChild(path);
